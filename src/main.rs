@@ -1,11 +1,9 @@
 mod crypto;
-
-use std::io;
-use std::io::Read;
-use std::fs::File;
+mod capsule;
+mod interface;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (key, iv) = load_crypto_info()?;
+    let (key, iv) = crypto::load_crypto_info()?;
     let data = b"Hello, OpenSSL in Rust!";
     let encrypted = crypto::encrypt_packet(data, &key, &iv)?;
     println!("Encrypted packet: {:?}", encrypted);
@@ -15,12 +13,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn load_crypto_info() -> io::Result<([u8;32], [u8;16])> {
-    let mut key_file = File::open("shared.key")?;
-    let mut iv_file = File::open("init_val.txt")?;
-    let mut key = [0u8;32];
-    let mut iv = [0u8;16]; 
-    key_file.read_exact(&mut key)?;
-    iv_file.read_exact(&mut iv)?;
-    return Ok((key, iv))
-}
+// fn main() -> io::Result<()> {
+//     let interface_name = "en0";
+//     let mut intf = match pnet_datalink::interfaces().into_iter().find(|d| d.name == "en0") {
+//         Some(intf) => intf,
+//         None => return Err(io::Error::new(io::ErrorKind::NotFound, interface_name))
+//     };
+//     let mut interface = Interface::new(intf).unwrap();
+//     println!("{:?}", interface.interface.mac.unwrap());
+//     Ok(())
+// }

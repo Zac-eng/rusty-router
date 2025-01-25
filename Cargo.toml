@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+dotenv = "0.15.0"
 openssl = { version = "0.10", features = ["vendored"] }
 pnet = "0.35.0"
 pnet_datalink = "0.35.0"

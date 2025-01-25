@@ -1,13 +1,10 @@
 use std::io::{self, Error, ErrorKind};
-use std::net::IpAddr;
-use std::{collections::HashMap, net::Ipv4Addr, sync::Mutex};
-
-use pnet::ipnetwork::IpNetwork;
-use pnet::packet::ethernet::{EtherTypes, EthernetPacket};
+use pnet::packet::ethernet::{EtherTypes, Ethernet, EthernetPacket};
 use pnet::packet::ipv4::{self, Ipv4Packet};
-use pnet_datalink::Channel::Ethernet;
-use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
+use pnet::packet::Packet;
+use pnet_datalink::{DataLinkSender, NetworkInterface};
 
+use crate::{crypto, capsule};
 use super::Interface;
 
 
@@ -28,9 +25,9 @@ impl Lan {
     let intf = Interface::new(intf)?;
     return Ok(Self {intf})
   }
-  pub fn run(&mut self) -> io::Result<()> {
+  pub fn run(&mut self) {
     loop {
-      let packet = self.intf.rx.next()?;
+      let packet = self.intf.rx.next().unwrap();
       let ether_frame = match EthernetPacket::new(packet) {
         Some(frame) => frame,
         None => continue
@@ -39,9 +36,17 @@ impl Lan {
       match ether_frame.get_ethertype() {
         EtherTypes::Arp => {},
         // EtherTypes::Arp => self.arph.handle_arp(),
-        EtherTypes::Ipv4 => {},
+        EtherTypes::Ipv4 => handle_ip_packet(ether_frame),
         _ => continue
       }
     }
+  }
+}
+
+fn handle_ip_packet(frame: EthernetPacket) {
+  if let Ok((key, iv)) = crypto::load_crypto_info() {
+    if let Ok(encrypted) = crypto::encrypt_packet(&frame.packet(), &key, &iv) {
+      // capsule::encapsulate_cipher(, encrypted);
+    };
   }
 }

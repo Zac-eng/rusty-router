@@ -1,8 +1,4 @@
 use std::{collections::HashMap, net::Ipv4Addr, sync::Mutex};
-
-use pnet::ipnetwork::IpNetwork;
-use pnet::packet::ipv4;
-use pnet_datalink::Channel::Ethernet;
 use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 
 pub struct WanSubIntf {

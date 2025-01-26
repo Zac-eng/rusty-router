@@ -1,30 +1,14 @@
-use std::io;
-use std::net::Ipv4Addr;
+use pnet::packet::{arp::{self, ArpPacket}, Packet};
 
-use pnet::packet::{arp::{ArpPacket, MutableArpPacket}, ethernet::MutableEthernetPacket};
-use pnet_datalink::{DataLinkSender, MacAddr};
-
-use super::ArpHandler;
+use super::{etherframe_from_arp, form_arp_packet, ArpHandler};
 
 impl ArpHandler {
-  pub fn arp_req_handle(&self, arp_packet: &ArpPacket) -> io::Result<()> {
-    let mut ether_frame_buf = [0u8;42];
-    let mut arp_packet_buf = [0u8;28];
-    let mut ether_frame = MutableEthernetPacket::new(&mut ether_frame_buf).unwrap();
-    let mut arp_packet = MutableArpPacket::new(&mut arp_packet_buf).unwrap();
-    // match self.look_up_table(arp_packet.get_target_proto_addr()) {
-    //   Some(mac_addr) => arp_packet.set_
-    // }
-    return Ok(())
+  pub fn handle_arp_request(&mut self, arp_packet: ArpPacket) {
+    if arp_packet.get_target_proto_addr() != self.ip_addr {return}
+    let dst_ip = arp_packet.get_sender_proto_addr();
+    let dst_mac = arp_packet.get_sender_hw_addr();
+    let arp_packet = form_arp_packet(self.mac_addr, self.ip_addr, dst_mac, dst_ip, arp::ArpOperations::Reply);
+    let ether_frame = etherframe_from_arp(arp_packet);
+    self.tx.send_to(ether_frame.packet(), None);
   }
-
-  // fn look_up_table(&self, target_addr: &Ipv4Addr) -> Option<MacAddr> {
-  //   match self.arp_table.get(target_addr) {
-  //     Some(mac_addr) => Some(mac_addr.clone()),
-  //     None => None
-  //   }
-  // }
-  // pub fn respond(&self, dst_channel: &Box<dyn DataLinkSender>, target_addr: &Ipv4Addr) {
-  //   let mac_addr = self.get_mac_addr(target_addr);
-  // }
 }

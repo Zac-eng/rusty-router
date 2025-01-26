@@ -33,27 +33,29 @@ use pnet_datalink::Channel::Ethernet;
 pub struct Interface {
   pub interface: NetworkInterface,
   pub ipv4addr: Ipv4Addr,
-  pub tx: Mutex<Box<dyn DataLinkSender>>,
-  pub rx: Box<dyn DataLinkReceiver>,
 }
 
 impl Interface {
   // consume passed interface, but includes it as attribute
-  pub fn new(mut interface: NetworkInterface) -> io::Result<Self> {
-    let (tx, rx) = match pnet_datalink::channel(&mut interface, Default::default()) {
-      Ok(Ethernet(tx, rx)) => (tx, rx),
-      _ => return Err(Error::new(ErrorKind::NotFound, "channel")),
-    };
+  pub fn new(interface: NetworkInterface) -> io::Result<Self> {
     let ipv4addr = match get_ipv4_addr(&interface) {
       Some(ipv4) => ipv4,
       None => return Err(Error::new(ErrorKind::NotFound, "ipv4"))
     };
     Ok(Self {
       interface,
-      ipv4addr,
-      tx: Mutex::from(tx),
-      rx
+      ipv4addr
     })
+  }
+}
+
+pub fn open_ethernet_channel(
+  interface: &NetworkInterface
+) -> io::Result<(Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>)> {
+  match pnet_datalink::channel(interface, Default::default()) {
+    Ok(Ethernet(tx, rx)) => Ok((tx, rx)),
+    Ok(_) => Err(io::Error::new(io::ErrorKind::InvalidData, "ethernet")),
+    Err(e) => Err(e),
   }
 }
 

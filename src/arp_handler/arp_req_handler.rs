@@ -4,9 +4,9 @@ use std::net::Ipv4Addr;
 use pnet::packet::{arp::{ArpPacket, MutableArpPacket}, ethernet::MutableEthernetPacket};
 use pnet_datalink::{DataLinkSender, MacAddr};
 
-use super::ARPHandler;
+use super::ArpHandler;
 
-impl ARPHandler {
+impl ArpHandler {
   pub fn arp_req_handle(&self, arp_packet: &ArpPacket) -> io::Result<()> {
     let mut ether_frame_buf = [0u8;42];
     let mut arp_packet_buf = [0u8;28];
@@ -18,13 +18,12 @@ impl ARPHandler {
     return Ok(())
   }
 
-  fn look_up_table(&self, target_addr: &Ipv4Addr) -> Option<MacAddr> {
-    let arp_table_locked = self.arp_table.lock().unwrap();
-    match arp_table_locked.get(target_addr) {
-      Some(mac_addr) => Some(mac_addr.clone()),
-      None => None
-    }
-  }
+  // fn look_up_table(&self, target_addr: &Ipv4Addr) -> Option<MacAddr> {
+  //   match self.arp_table.get(target_addr) {
+  //     Some(mac_addr) => Some(mac_addr.clone()),
+  //     None => None
+  //   }
+  // }
   // pub fn respond(&self, dst_channel: &Box<dyn DataLinkSender>, target_addr: &Ipv4Addr) {
   //   let mac_addr = self.get_mac_addr(target_addr);
   // }

@@ -1,19 +1,43 @@
-use std::thread;
-use std::time::Duration;
-use std::{collections::HashMap, net::Ipv4Addr, sync::Mutex};
-use pnet::packet::arp::{self, MutableArpPacket};
-use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
-use pnet_datalink::MacAddr;
-use pnet_datalink::Channel::Ethernet;
+use std::collections::{VecDeque, HashMap};
+use std::net::Ipv4Addr;
+use std::sync::Mutex;
+use pnet::packet::arp::{self, ArpOperation, ArpPacket, MutableArpPacket};
+use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
+use pnet::packet::ipv4::Ipv4Packet;
+use pnet::packet::Packet;
+use pnet_datalink::{DataLinkSender, MacAddr, NetworkInterface};
 
-mod arp_res_handler;
+use crate::interface::get_ipv4_addr;
+
+mod arp_rep_handler;
 mod arp_req_handler;
+mod ip_packet_sender;
 
-struct ARPHandler {
-  arp_table: Mutex<HashMap<Ipv4Addr, MacAddr>>
+pub struct ArpHandler {
+  ip_addr: Ipv4Addr,
+  mac_addr: MacAddr,
+  tx: Box<dyn DataLinkSender>,
+  ip_que: VecDeque<Ipv4Packet<'static>>,
+  arp_table: HashMap<Ipv4Addr, MacAddr>
 }
 
-impl ARPHandler {
+impl ArpHandler {
+  pub fn handle_arp(&mut self, frame: EthernetPacket) {
+    if let Some(arp_packet) = ArpPacket::new(&frame.payload()) {
+      match arp_packet.get_operation() {
+        arp::ArpOperations::Request => self.handle_arp_request(arp_packet),
+        arp::ArpOperations::Reply => self.handle_arp_reply(arp_packet),
+        _ => return
+      }
+    }
+  }
+  fn handle_arp_request(&mut self, arp_packet: ArpPacket) {
+    if arp_packet.get_target_proto_addr() == self.ip_addr {
+      // let reply_arp_packet = form_arp_packet()
+    }
+  }
+  // fn handle_arp_reply(&mut self, arp_packet: ArpPacket) {}
+
   // async fn get_mac_addr(&self, dst_addr: &Ipv4Addr) -> Result<MacAddr, &'static str> {
   //   match self.arp_table.lock().unwrap().get(dst_addr) {
   //     Some(mac_addr) => return Ok(mac_addr.clone()),
@@ -55,4 +79,24 @@ impl ARPHandler {
   //     None => return Err("IP address not found"),
   //   }
   // }
+}
+
+fn form_arp_packet(
+  src: &NetworkInterface,
+  tgt_mac: MacAddr,
+  tgt_ip: Ipv4Addr,
+  operation: ArpOperation
+ ) -> MutableArpPacket<'static> {
+  let arp_buf = vec![0u8;42];
+  let mut arp_packet = MutableArpPacket::owned(arp_buf).unwrap();
+  arp_packet.set_hardware_type(arp::ArpHardwareTypes::Ethernet);
+  arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
+  arp_packet.set_hw_addr_len(6);
+  arp_packet.set_proto_addr_len(4);
+  arp_packet.set_operation(operation);
+  arp_packet.set_sender_hw_addr(src.mac.unwrap());
+  arp_packet.set_sender_proto_addr(get_ipv4_addr(&src).unwrap());
+  arp_packet.set_target_hw_addr(tgt_mac);
+  arp_packet.set_target_proto_addr(tgt_ip);
+  return arp_packet
 }

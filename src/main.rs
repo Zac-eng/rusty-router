@@ -9,9 +9,9 @@ use interface::{constructor::construct_interface, thread_funcs::{lan_thread_func
 fn main() -> io::Result<()> {
     dotenv().ok();
 
-    let (lan_tx, mut lan_rx) = construct_interface(&env::var("LAN_INTF").unwrap(), "")?;
-    let (wan0_tx, mut wan0_rx) = construct_interface(&env::var("WAN0_INTF").unwrap(), "")?;
-    let (wan1_tx, mut wan1_rx) = construct_interface(&env::var("WAN0_INTF").unwrap(), "")?;
+    let (lan_tx, mut lan_rx) = construct_interface(&env::var("LAN_INTF").unwrap(), "LAN_FIRSTHOP_MAC")?;
+    let (wan0_tx, mut wan0_rx) = construct_interface(&env::var("WAN0_INTF").unwrap(), "WAN0_FIRSTHOP_MAC")?;
+    let (wan1_tx, mut wan1_rx) = construct_interface(&env::var("WAN1_INTF").unwrap(), "WAN1_FIRSTHOP_MAC")?;
     let lan_tx_arc = Arc::new(Mutex::new(lan_tx));
     let arc0 = Arc::clone(&lan_tx_arc);
     let arc1 = Arc::clone(&lan_tx_arc);

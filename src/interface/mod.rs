@@ -1,12 +1,13 @@
 use std::io::{self, Error, ErrorKind};
 use std::net::Ipv4Addr;
-use pnet::packet::ethernet::EtherTypes;
+use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
 use pnet::packet::ipv4::Ipv4Packet;
 use pnet::packet::Packet;
 use pnet::{ipnetwork::IpNetwork, packet::ethernet::EthernetPacket};
 use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 
-mod constructor;
+pub mod constructor;
+pub mod thread_funcs;
 
 pub struct IntfInput {
   ipv4_addr: Ipv4Addr,
@@ -28,7 +29,7 @@ impl IntfInput {
     }
   }
 
-  pub fn classifier(&self, etherframe: EthernetPacket) -> Option<Ipv4Packet<'static>> {
+  pub fn classify(&self, etherframe: EthernetPacket) -> Option<Ipv4Packet<'static>> {
     match etherframe.get_ethertype() {
       EtherTypes::Ipv4 => {
         let ip_packet = match Ipv4Packet::owned(etherframe.payload().to_vec()) {
@@ -43,7 +44,24 @@ impl IntfInput {
   }
 }
 
-impl IntfOutput {}
+impl IntfOutput {
+  pub fn ether_encap(&self, ip_packet: Ipv4Packet) -> Option<EthernetPacket<'static>> {
+    let mut ether_frame = MutableEthernetPacket::owned(vec![0u8])?;
+    ether_frame.set_destination(self.dst_mac);
+    ether_frame.set_source(self.self_mac);
+    ether_frame.set_ethertype(EtherTypes::Ipv4);
+    ether_frame.set_payload(ip_packet.packet());
+    let ether_frame = EthernetPacket::owned(ether_frame.packet().to_vec()).unwrap();
+    return Some(ether_frame)
+  }
+  pub fn send(&mut self, ether_frame: EthernetPacket) -> io::Result<()> {
+    // return Ok also for the case no response from API
+    match self.tx.send_to(ether_frame.packet(), None) {
+      Some(result) => return result,
+      None => return Ok(())
+    }
+  }
+}
 
 fn get_ipv4_addr(interface: &NetworkInterface) -> Option<Ipv4Addr> {
   interface.ips.iter().find_map(|ipaddr| {

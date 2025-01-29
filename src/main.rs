@@ -1,9 +1,5 @@
 mod interface;
-mod crypto;
-mod capsule;
-mod arp_handler;
-
-use interface::{lan_intf, open_ethernet_channel};
+mod scheduler;
 use std::{env, io, thread::{self, JoinHandle}};
 use dotenv::dotenv;
 

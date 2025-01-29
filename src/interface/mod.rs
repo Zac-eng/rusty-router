@@ -1,65 +1,51 @@
-pub mod lan_intf;
-pub mod wan_init_intf;
-pub mod wan_sub_intf;
-
 use std::io::{self, Error, ErrorKind};
-use std::{collections::HashMap, net::Ipv4Addr, sync::Mutex};
-
-use pnet::ipnetwork::IpNetwork;
-use pnet::packet::arp::MutableArpPacket;
-use pnet::packet::ethernet::MutableEthernetPacket;
+use std::net::Ipv4Addr;
+use pnet::packet::ethernet::EtherTypes;
+use pnet::packet::ipv4::Ipv4Packet;
 use pnet::packet::Packet;
+use pnet::{ipnetwork::IpNetwork, packet::ethernet::EthernetPacket};
 use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
-use pnet_datalink::Channel::Ethernet;
 
-// pub trait Interface {
-//   fn set_interface(intf: NetworkInterface);
-//   fn lock_own_sender(&self) -> impl DataLinkSender;
-//   fn get_ipv4_addr(&self) -> &Ipv4Addr;
-//   // fn respond_arp(&self, target: &Ipv4Addr) {
-//   //   if *target == *self.get_ipv4_addr() {
-//   //     let mut tx = self.lock_own_sender();
-//   //     let mut arp_buf = [0u8;28];
-//   //     let mut ether_buf = [0u8;42];
-//   //     let mut arp_packet = MutableArpPacket::new(&mut arp_buf).unwrap();
-//   //     let mut ether_frame = MutableEthernetPacket::new(&mut ether_buf).unwrap();
-//   //     // arp_packet.set_hardware_type(val);
-//   //     // ether_frame.set_payload(&arp_packet.packet());
-//   //     tx.send_to(&ether_frame.packet(), None);
-//   //   }
-//   // }
-// }
+mod constructor;
 
-pub struct Interface {
-  pub interface: NetworkInterface,
-  pub ipv4addr: Ipv4Addr,
+pub struct IntfInput {
+  ipv4_addr: Ipv4Addr,
+  rx: Box<dyn DataLinkReceiver>,
 }
 
-impl Interface {
-  // consume passed interface, but includes it as attribute
-  pub fn new(interface: NetworkInterface) -> io::Result<Self> {
-    let ipv4addr = match get_ipv4_addr(&interface) {
-      Some(ipv4) => ipv4,
-      None => return Err(Error::new(ErrorKind::NotFound, "ipv4"))
-    };
-    Ok(Self {
-      interface,
-      ipv4addr
-    })
+pub struct IntfOutput {
+  dst_mac: MacAddr,
+  self_mac: MacAddr,
+  tx: Box<dyn DataLinkSender>,
+}
+
+impl IntfInput {
+  pub fn receive(&mut self) -> io::Result<EthernetPacket<'static>> {
+    let packet = self.rx.next()?;
+    match EthernetPacket::owned(packet.to_vec()) {
+      Some(etherframe) => Ok(etherframe),
+      None => Err(Error::new(ErrorKind::InvalidData, "non_ethernet packet"))
+    }
+  }
+
+  pub fn classifier(&self, etherframe: EthernetPacket) -> Option<Ipv4Packet<'static>> {
+    match etherframe.get_ethertype() {
+      EtherTypes::Ipv4 => {
+        let ip_packet = match Ipv4Packet::owned(etherframe.payload().to_vec()) {
+          Some(packet) => packet,
+          None => return None
+        };
+        if ip_packet.get_destination() == self.ipv4_addr {None}
+        else {Some(ip_packet)}
+      }
+      _ => None
+    }
   }
 }
 
-pub fn open_ethernet_channel(
-  interface: &NetworkInterface
-) -> io::Result<(Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>)> {
-  match pnet_datalink::channel(interface, Default::default()) {
-    Ok(Ethernet(tx, rx)) => Ok((tx, rx)),
-    Ok(_) => Err(io::Error::new(io::ErrorKind::InvalidData, "ethernet")),
-    Err(e) => Err(e),
-  }
-}
+impl IntfOutput {}
 
-pub fn get_ipv4_addr(interface: &NetworkInterface) -> Option<Ipv4Addr> {
+fn get_ipv4_addr(interface: &NetworkInterface) -> Option<Ipv4Addr> {
   interface.ips.iter().find_map(|ipaddr| {
     if let IpNetwork::V4(ipv4addr) = ipaddr {
       return Some(ipv4addr.ip());

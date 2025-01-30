@@ -8,7 +8,7 @@ pub fn lan_thread_func(
   lan_in: &mut IntfInput,
   wan_out: &mut Vec<IntfOutput>,
 ) -> io::Result<()> {
-  let mut scheduler = RoundRobinScheduler::new(2);
+  let mut scheduler = RoundRobinScheduler::new(wan_out.len());
   loop {
     let ether_frame = lan_in.receive()?;
     let ip_packet = match lan_in.classify(ether_frame) {

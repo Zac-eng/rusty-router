@@ -16,7 +16,6 @@ fn main() -> io::Result<()> {
     let arc0 = Arc::clone(&lan_tx_arc);
     let arc1 = Arc::clone(&lan_tx_arc);
 
-    println!("mark");
     let mut handles: Vec<JoinHandle<io::Result<()>>> = Vec::new();
     handles.push(thread::spawn(move || {
         lan_thread_func(&mut lan_rx, &mut vec![wan0_tx, wan1_tx])

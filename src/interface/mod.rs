@@ -46,7 +46,8 @@ impl IntfInput {
 
 impl IntfOutput {
   pub fn ether_encap(&self, ip_packet: Ipv4Packet) -> Option<EthernetPacket<'static>> {
-    let mut ether_frame = MutableEthernetPacket::owned(vec![0u8])?;
+    let ip_packet_len = ip_packet.packet().len();
+    let mut ether_frame = MutableEthernetPacket::owned(vec![0u8;ip_packet_len+14])?;
     ether_frame.set_destination(self.dst_mac);
     ether_frame.set_source(self.self_mac);
     ether_frame.set_ethertype(EtherTypes::Ipv4);

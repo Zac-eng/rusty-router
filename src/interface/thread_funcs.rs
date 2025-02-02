@@ -16,6 +16,7 @@ pub fn lan_thread_func(
       None => continue,
     };
     let out_intf = &mut wan_out[scheduler.next()];
+    //ip_packet = out_intf.napter.translate_outgoing_packet(ip_packet);
     let ether_to_send = match out_intf.ether_encap(ip_packet) {
       Some(frame) => frame,
       None => continue,

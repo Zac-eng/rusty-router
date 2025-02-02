@@ -1,7 +1,7 @@
 use std::io::{self, Error, ErrorKind};
 use std::net::Ipv4Addr;
 use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
-use pnet::packet::ipv4::Ipv4Packet;
+use pnet::packet::ipv4::MutableIpv4Packet;
 use pnet::packet::Packet;
 use pnet::{ipnetwork::IpNetwork, packet::ethernet::EthernetPacket};
 use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
@@ -29,10 +29,10 @@ impl IntfInput {
     }
   }
 
-  pub fn classify(&self, etherframe: EthernetPacket) -> Option<Ipv4Packet<'static>> {
+  pub fn classify(&self, etherframe: EthernetPacket) -> Option<MutableIpv4Packet<'static>> {
     match etherframe.get_ethertype() {
       EtherTypes::Ipv4 => {
-        let ip_packet = match Ipv4Packet::owned(etherframe.payload().to_vec()) {
+        let ip_packet = match MutableIpv4Packet::owned(etherframe.payload().to_vec()) {
           Some(packet) => packet,
           None => return None
         };
@@ -45,7 +45,7 @@ impl IntfInput {
 }
 
 impl IntfOutput {
-  pub fn ether_encap(&self, ip_packet: Ipv4Packet) -> Option<EthernetPacket<'static>> {
+  pub fn ether_encap(&self, ip_packet: MutableIpv4Packet) -> Option<EthernetPacket<'static>> {
     let ip_packet_len = ip_packet.packet().len();
     let mut ether_frame = MutableEthernetPacket::owned(vec![0u8;ip_packet_len+14])?;
     ether_frame.set_destination(self.dst_mac);

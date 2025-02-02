@@ -2,6 +2,7 @@ use std::{env, io, sync::{Arc, Mutex}, thread::{self, JoinHandle}};
 use dotenv::dotenv;
 
 mod interface;
+mod napt;
 mod scheduler;
 
 use interface::{constructor::construct_interface, thread_funcs::{lan_thread_func, wan_thread_func}};

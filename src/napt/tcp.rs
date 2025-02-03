@@ -1,40 +1,30 @@
-use std::{io, net::Ipv4Addr};
-use std::cell::RefCell;
-
-use pnet::packet::tcp::{self, TcpPacket};
-use pnet::packet::{ipv4::{Ipv4Packet, MutableIpv4Packet}, tcp:: MutableTcpPacket, Packet};
-use pnet::packet::MutablePacket;
+use pnet::packet::{ipv4::MutableIpv4Packet, tcp:: MutableTcpPacket, Packet};
 
 use super::NAPTer;
 
 impl NAPTer {
-  pub fn translate_incoming_tcp<'p>(&self, mut ip_packet: MutableIpv4Packet<'p>) -> Option<MutableIpv4Packet<'p>> {
-    // let buffer_ref = RefCell::new(ip_packet.packet_mut());
-    // let mut external_port = 0;
-    // let mut tcp_buf = buffer_ref.borrow_mut();
-    // let mut local_dst: &(Ipv4Addr, u16);
-    // if let Some(tcp_packet) = MutableTcpPacket::new(&mut tcp_buf) {
-    //   if let Some(local_dst) = self.tcp_map.get(&tcp_packet.get_destination()) {
-    //     tcp_packet.set_destination(local_dst.1);
-    //   } else {return None}
-    // } else {return None}
-    // drop(tcp_buf);
-    // let mut ip_buf = buffer_ref.borrow_mut();
-    // let mut ip_packet = MutableIpv4Packet::new(&mut ip_buf)?;
-    // ip_packet.set_destination(local_dst.0);
-    // return Some(ip_packet)
-    // let tcp_buf = ip_packet.payload();
-    // let external_port: u16;
-    // if let Some(tcp_packet) = TcpPacket::new(tcp_buf) {
-    //   external_port = u16::from_be(tcp_packet.get_destination());
-    // } else {return None}
-    // {
-    //   ip_packet
-    // }
+  pub fn translate_incoming_tcp(&self, ip_packet: MutableIpv4Packet) -> Option<MutableIpv4Packet<'static>> {
+    let mut new_ip_packet = MutableIpv4Packet::owned(ip_packet.packet().to_vec()).unwrap();
+    let mut new_tcp_packet = MutableTcpPacket::owned(ip_packet.payload().to_vec()).unwrap();
+    if let Some(local_dest) = self.tcp_map.get(&u16::from_be(new_tcp_packet.get_destination())) {
+      new_tcp_packet.set_destination(local_dest.1.to_be());
+      new_ip_packet.set_destination(local_dest.0);
+      new_ip_packet.set_payload(new_tcp_packet.packet());
+      return Some(new_ip_packet)
+    }
     None
   }
-}
 
-  // pub fn translate_outgoing_tcp(&mut self, ip_packet: Ipv4Packet) -> Option<Ipv4Packet<'static>> {
-  //   if ()
-  // }
+  pub fn translate_outgoing_tcp(&mut self, ip_packet: MutableIpv4Packet) -> Option<MutableIpv4Packet<'static>> {
+    let mut new_ip_packet = MutableIpv4Packet::owned(ip_packet.packet().to_vec()).unwrap();
+    let mut new_tcp_packet = MutableTcpPacket::owned(ip_packet.payload().to_vec()).unwrap();
+    let original_port = u16::from_be(new_tcp_packet.get_source());
+    let mut translated_port = original_port;
+    while let Some(_) = self.tcp_map.get(&translated_port) {translated_port+=1;}
+    self.tcp_map.insert(translated_port, (new_ip_packet.get_source(), original_port));
+    new_ip_packet.set_source(self.self_ip);
+    new_tcp_packet.set_source(translated_port);
+    new_ip_packet.set_payload(new_tcp_packet.packet());
+    return Some(new_ip_packet)
+  }
+}

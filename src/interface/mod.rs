@@ -10,7 +10,7 @@ pub mod constructor;
 pub mod thread_funcs;
 
 pub struct IntfInput {
-  ipv4_addr: Ipv4Addr,
+  pub ipv4_addr: Ipv4Addr,
   rx: Box<dyn DataLinkReceiver>,
 }
 

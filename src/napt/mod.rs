@@ -21,21 +21,21 @@ impl NAPTer {
     }
   }
   //translate packets coming from WAN
-  pub fn translate_incoming<'p>(&self, packet: MutableIpv4Packet<'p>) -> Option<MutableIpv4Packet<'p>> {
+  pub fn translate_incoming(&self, packet: MutableIpv4Packet<'static>) -> Option<MutableIpv4Packet<'static>> {
     match packet.get_next_level_protocol() {
       // Icmp => {},
       Tcp => self.translate_incoming_tcp(packet),
       // Udp => {},
-      _ => None,
+      _ => Some(packet)
     }
   }
   //translate packets going to WAN
-  pub fn translate_outgoing(&mut self, packet: MutableIpv4Packet) -> Option<MutableIpv4Packet<'static>> {
+  pub fn translate_outgoing(&mut self, packet: MutableIpv4Packet<'static>) -> Option<MutableIpv4Packet<'static>> {
     match packet.get_next_level_protocol() {
       // Icmp => {},
       Tcp => self.translate_outgoing_tcp(packet),
       // Udp => {},
-      _ => None
+      _ => Some(packet)
     }
   }
 }

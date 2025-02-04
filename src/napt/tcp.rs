@@ -10,9 +10,8 @@ impl NAPTer {
       new_tcp_packet.set_destination(local_dest.1.to_be());
       new_ip_packet.set_destination(local_dest.0);
       new_ip_packet.set_payload(new_tcp_packet.packet());
-      return Some(new_ip_packet)
     }
-    None
+    return Some(new_ip_packet)
   }
 
   pub fn translate_outgoing_tcp(&mut self, ip_packet: MutableIpv4Packet) -> Option<MutableIpv4Packet<'static>> {

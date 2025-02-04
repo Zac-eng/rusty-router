@@ -22,12 +22,12 @@ impl NAPTer {
     let original_port = u16::from_be(new_tcp_packet.get_source());
     let mut translated_port = original_port;
     while let Some(local_dst) = self.tcp_map.get(&translated_port) {
-      if local_dst.0 == original_ip {break;}
+      if *local_dst == (original_ip, original_port) {break;}
       translated_port+=1;
     }
     self.tcp_map.insert(translated_port, (new_ip_packet.get_source(), original_port));
     new_ip_packet.set_source(self.self_ip);
-    new_tcp_packet.set_source(translated_port);
+    new_tcp_packet.set_source(translated_port.to_be());
     new_ip_packet.set_payload(new_tcp_packet.packet());
     return Some(new_ip_packet)
   }

@@ -1,6 +1,8 @@
+use std::ops::Index;
+
 use pnet::packet::{ipv4::MutableIpv4Packet, tcp:: MutableTcpPacket, Packet};
 
-use super::NAPTer;
+use super::{calc_ip_checksum, NAPTer};
 
 impl NAPTer {
   pub fn translate_incoming_tcp(&self, ip_packet: MutableIpv4Packet) -> Option<MutableIpv4Packet<'static>> {
@@ -26,6 +28,7 @@ impl NAPTer {
     }
     self.tcp_map.insert(translated_port, (new_ip_packet.get_source(), original_port));
     new_ip_packet.set_source(self.self_ip);
+    new_ip_packet.set_checksum(calc_ip_checksum(&new_ip_packet));
     new_tcp_packet.set_source(translated_port.to_be());
     new_ip_packet.set_payload(new_tcp_packet.packet());
     return Some(new_ip_packet)

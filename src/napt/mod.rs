@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash, net::Ipv4Addr};
 
-use pnet::packet::{ip::IpNextHeaderProtocols::{Icmp, Tcp, Udp}, ipv4::{Ipv4Packet, MutableIpv4Packet}};
+use pnet::packet::{ip::IpNextHeaderProtocols::{Icmp, Tcp, Udp}, ipv4::{Ipv4Packet, MutableIpv4Packet}, Packet};
 
 mod tcp;
 
@@ -38,4 +38,22 @@ impl NAPTer {
       _ => Some(packet)
     }
   }
+}
+
+pub fn calc_ip_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
+  let mut ip_header = Vec::new();
+  ip_header.extend_from_slice(&ip_packet.packet()[..ip_packet.get_header_length() as usize]);
+  let mut sum = 0u32;
+  for chunk in ip_header.chunks(2) {
+    let word = if chunk.len() == 2 {
+      u16::from_be_bytes([chunk[0], chunk[1]])
+    } else {
+      u16::from_be_bytes([chunk[0], 0])
+    };
+    sum += word as u32;
+  }
+  while (sum >> 16) != 0 {
+    sum = (sum & 0xFFFF) + (sum >> 16);
+  }
+  !(sum as u16)
 }

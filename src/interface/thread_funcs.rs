@@ -15,12 +15,13 @@ pub fn lan_thread_func(
   let mut scheduler = RoundRobinScheduler::new(wan_out.len());
   loop {
     let ether_frame = lan_in.receive()?;
-    let ip_packet = match lan_in.classify(ether_frame) {
+    let mut ip_packet = match lan_in.classify(ether_frame) {
       Some(packet) => packet,
       None => continue,
     };
-    println!("{:?}", &ip_packet.packet()[0..ip_packet.get_header_length() as usize * 4]);
-    assert_eq!(calc_ip_checksum(&ip_packet), ip_packet.get_checksum());
+    println!("{}", ip_packet.get_checksum());
+    ip_packet.set_checksum(0);
+    println!("{}", calc_ip_checksum(&ip_packet));
     let out_intf = &mut wan_out[scheduler.next()];
     let mut napter = napter.lock().unwrap();
     let napted_packet = napter.translate_outgoing(ip_packet).unwrap();

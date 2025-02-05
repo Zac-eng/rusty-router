@@ -41,8 +41,7 @@ impl NAPTer {
 }
 
 pub fn calc_ip_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
-  let mut ip_header = Vec::new();
-  ip_header.extend_from_slice(&ip_packet.packet()[..ip_packet.get_header_length() as usize * 4]);
+  let ip_header = &ip_packet.packet()[..ip_packet.get_header_length() as usize * 4];
   let mut sum = 0u32;
   for chunk in ip_header.chunks(2) {
     let word = if chunk.len() == 2 {

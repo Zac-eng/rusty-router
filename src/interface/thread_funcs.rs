@@ -1,5 +1,7 @@
 use std::{io, sync::Arc};
 use std::sync::Mutex;
+use pnet::packet::Packet;
+
 use crate::napt::{calc_ip_checksum, NAPTer};
 use crate::scheduler::RoundRobinScheduler;
 
@@ -17,6 +19,7 @@ pub fn lan_thread_func(
       Some(packet) => packet,
       None => continue,
     };
+    println!("{:?}", ip_packet.packet());
     assert_eq!(calc_ip_checksum(&ip_packet), ip_packet.get_checksum());
     let out_intf = &mut wan_out[scheduler.next()];
     let mut napter = napter.lock().unwrap();

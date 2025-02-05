@@ -9,6 +9,8 @@ impl NAPTer {
     if let Some(local_dest) = self.tcp_map.get(&u16::from_be(new_tcp_packet.get_destination())) {
       new_tcp_packet.set_destination(local_dest.1.to_be());
       new_ip_packet.set_destination(local_dest.0);
+      new_ip_packet.set_checksum(0);
+      new_ip_packet.set_checksum(calc_ip_checksum(&new_ip_packet));
       new_ip_packet.set_payload(new_tcp_packet.packet());
     }
     return Some(new_ip_packet)
@@ -26,6 +28,7 @@ impl NAPTer {
     }
     self.tcp_map.insert(translated_port, (new_ip_packet.get_source(), original_port));
     new_ip_packet.set_source(self.self_ip);
+    new_ip_packet.set_checksum(0);
     new_ip_packet.set_checksum(calc_ip_checksum(&new_ip_packet));
     new_tcp_packet.set_source(translated_port.to_be());
     new_ip_packet.set_payload(new_tcp_packet.packet());

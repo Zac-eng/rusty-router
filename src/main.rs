@@ -11,6 +11,7 @@ use napt::NAPTer;
 
 fn main() -> io::Result<()> {
     dotenv().ok();
+    println!("Rusty Bounding Router Running!!");
 
     let (lan_tx, mut lan_rx) = construct_interface(&env::var("LAN_INTF").unwrap(), "LAN_FIRSTHOP_MAC")?;
     let (wan0_tx, mut wan0_rx) = construct_interface(&env::var("WAN0_INTF").unwrap(), "WAN0_FIRSTHOP_MAC")?;

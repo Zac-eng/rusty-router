@@ -47,7 +47,7 @@ pub fn calc_translated_ip_checksum(original_checksum: u16, original_ip: &Ipv4Add
 
   let original_ip_words = [u16::from_be_bytes([original_octets[0], original_octets[1]]), u16::from_be_bytes([original_octets[2], original_octets[3]])];
   let new_ip_words = [u16::from_be_bytes([new_octets[0], new_octets[1]]), u16::from_be_bytes([new_octets[2], new_octets[3]])];
-  let mut new_sum = u32::from(original_checksum + !original_ip_words[0] + !original_ip_words[1] + 2 + new_ip_words[0] + new_ip_words[1]);
+  let mut new_sum = original_checksum as u32 + !original_ip_words[0] as u32 + !original_ip_words[1] as u32 + 2 + new_ip_words[0] as u32 + new_ip_words[1] as u32;
   while (new_sum >> 16) != 0 {
     new_sum = (new_sum & 0xFFFF) + (new_sum >> 16);
   }
@@ -67,7 +67,7 @@ pub fn calc_translated_transport_checksum(
 
   let original_ip_words = [u16::from_be_bytes([original_octets[0], original_octets[1]]), u16::from_be_bytes([original_octets[2], original_octets[3]])];
   let new_ip_words = [u16::from_be_bytes([new_octets[0], new_octets[1]]), u16::from_be_bytes([new_octets[2], new_octets[3]])];
-  let mut new_sum = u32::from(original_checksum + !original_ip_words[0] + !original_ip_words[1] + !original_port + 3 + new_ip_words[0] + new_ip_words[1] + new_port);
+  let mut new_sum = original_checksum as u32 + !original_ip_words[0] as u32 + !original_ip_words[1] as u32 + !original_port as u32 + 3 + new_ip_words[0] as u32 + new_ip_words[1] as u32 + new_port as u32;
   while (new_sum >> 16) != 0 {
     new_sum = (new_sum & 0xFFFF) + (new_sum >> 16);
   }

@@ -4,6 +4,7 @@ use dotenv::dotenv;
 mod interface;
 mod napt;
 mod scheduler;
+mod test;
 
 use interface::{constructor::construct_interface, thread_funcs::{lan_thread_func, wan_thread_func}};
 use napt::NAPTer;

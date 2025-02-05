@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use pnet::packet::{ipv4::MutableIpv4Packet, tcp:: MutableTcpPacket, Packet};
 
 use super::{calc_ip_checksum, NAPTer};

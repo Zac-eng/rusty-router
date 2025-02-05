@@ -19,7 +19,7 @@ pub fn lan_thread_func(
       Some(packet) => packet,
       None => continue,
     };
-    println!("{:?}", ip_packet.packet());
+    println!("{:?}", &ip_packet.packet()[0..ip_packet.get_header_length() as usize * 4]);
     assert_eq!(calc_ip_checksum(&ip_packet), ip_packet.get_checksum());
     let out_intf = &mut wan_out[scheduler.next()];
     let mut napter = napter.lock().unwrap();

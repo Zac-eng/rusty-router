@@ -1,8 +1,7 @@
 use std::{io, sync::Arc};
 use std::sync::Mutex;
-use pnet::packet::Packet;
 
-use crate::napt::{calc_ip_checksum, NAPTer};
+use crate::napt::NAPTer;
 use crate::scheduler::RoundRobinScheduler;
 
 use super::{IntfInput, IntfOutput};
@@ -15,11 +14,10 @@ pub fn lan_thread_func(
   let mut scheduler = RoundRobinScheduler::new(wan_out.len());
   loop {
     let ether_frame = lan_in.receive()?;
-    let mut ip_packet = match lan_in.classify(ether_frame) {
+    let ip_packet = match lan_in.classify(ether_frame) {
       Some(packet) => packet,
       None => continue,
     };
-    ip_packet.set_checksum(0);
     let out_intf = &mut wan_out[scheduler.next()];
     let mut napter = napter.lock().unwrap();
     let napted_packet = napter.translate_outgoing(ip_packet).unwrap();

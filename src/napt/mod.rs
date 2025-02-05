@@ -40,19 +40,28 @@ impl NAPTer {
   }
 }
 
-pub fn calc_ip_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
-  let ip_header = &ip_packet.packet()[..ip_packet.get_header_length() as usize * 4];
-  let mut sum = 0u32;
-  for chunk in ip_header.chunks(2) {
-    let word = if chunk.len() == 2 {
-      u16::from_be_bytes([chunk[0], chunk[1]])
-    } else {
-      u16::from_be_bytes([chunk[0], 0])
-    };
-    sum += word as u32;
-  }
-  while (sum >> 16) != 0 {
-    sum = (sum & 0xFFFF) + (sum >> 16);
-  }
-  !(sum as u16)
+pub fn calc_translated_ip_checksum(original_checksum: u16, original_ip: &Ipv4Addr, new_ip: &Ipv4Addr) -> u16 {
+  // let ip_header = &ip_packet.packet()[..ip_packet.get_header_length() as usize * 4];
+  let original_octets = original_ip.octets();
+  let new_octets = new_ip.octets();
+
+  let original_ip_words = [u16::from_be_bytes([original_octets[0], original_octets[1]]), u16::from_be_bytes([original_octets[2], original_octets[3]])];
+  let new_ip_words = [u16::from_be_bytes([new_octets[0], new_octets[1]]), u16::from_be_bytes([new_octets[2], new_octets[3]])];
+  original_checksum + !original_ip_words[0] + !original_ip_words[1] + 2 + new_ip_words[0] + new_ip_words[1]
+}
+
+pub fn calc_translated_transport_checksum(
+  original_checksum: u16,
+  original_ip: &Ipv4Addr,
+  new_ip: &Ipv4Addr,
+  original_port: u16,
+  new_port: u16
+) -> u16 {
+  // let ip_header = &ip_packet.packet()[..ip_packet.get_header_length() as usize * 4];
+  let original_octets = original_ip.octets();
+  let new_octets = new_ip.octets();
+
+  let original_ip_words = [u16::from_be_bytes([original_octets[0], original_octets[1]]), u16::from_be_bytes([original_octets[2], original_octets[3]])];
+  let new_ip_words = [u16::from_be_bytes([new_octets[0], new_octets[1]]), u16::from_be_bytes([new_octets[2], new_octets[3]])];
+  original_checksum + !original_ip_words[0] + !original_ip_words[1] + !original_port + 3 + new_ip_words[0] + new_ip_words[1] + new_port
 }

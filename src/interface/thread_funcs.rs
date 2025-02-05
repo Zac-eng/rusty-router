@@ -19,7 +19,7 @@ pub fn lan_thread_func(
       Some(packet) => packet,
       None => continue,
     };
-    println!("{}", ip_packet.get_checksum());
+    print!("{}", ip_packet.get_checksum());
     ip_packet.set_checksum(0);
     println!("{}", calc_ip_checksum(&ip_packet));
     let out_intf = &mut wan_out[scheduler.next()];

@@ -3,6 +3,7 @@ use std::{collections::HashMap, net::Ipv4Addr};
 use pnet::packet::{ip::IpNextHeaderProtocols::{Icmp, Tcp, Udp}, ipv4::{Ipv4Packet, MutableIpv4Packet}, tcp::MutableTcpPacket, Packet, MutablePacket};
 
 mod tcp;
+mod udp;
 
 pub struct NAPTer {
   self_ip: Ipv4Addr,
@@ -25,7 +26,7 @@ impl NAPTer {
     match packet.get_next_level_protocol() {
       // Icmp => {},
       Tcp => self.translate_incoming_tcp(packet),
-      // Udp => {},
+      Udp => self.translate_incoming_udp(packet),
       _ => None
     }
   }
@@ -34,7 +35,7 @@ impl NAPTer {
     match packet.get_next_level_protocol() {
       // Icmp => {},
       Tcp => self.translate_outgoing_tcp(packet),
-      // Udp => {},
+      Udp => self.translate_outgoing_udp(packet),
       _ => None
     }
   }
@@ -44,7 +45,7 @@ pub fn calc_ip_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
   compute_checksum(&ip_packet.packet()[..20])
 }
 
-pub fn calc_tcp_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
+pub fn calc_transport_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
   let mut tcp_checksum_buf: Vec<u8> = Vec::new();
   tcp_checksum_buf.append(&mut ip_packet.packet()[12..20].to_vec());
   let tcp_packet_len = ip_packet.payload().len();

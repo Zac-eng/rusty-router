@@ -11,7 +11,6 @@ pub fn lan_thread_func(
   wan_out: &mut Vec<IntfOutput>,
   napter: Arc<Mutex<NAPTer>>
 ) -> io::Result<()> {
-  println!("lan thread spawn");
   let mut scheduler = RoundRobinScheduler::new(wan_out.len());
   loop {
     let ether_frame = lan_in.receive()?;
@@ -32,17 +31,14 @@ pub fn wan_thread_func(
   lan_out_arc: Arc<Mutex<IntfOutput>>,
   napter: Arc<Mutex<NAPTer>>
 ) -> io::Result<()> {
-  println!("wan thread spawn");
   loop {
     let ether_frame = wan_in.receive()?;
     if let Some(ip_packet) = wan_in.classify(ether_frame) {
       let napter = napter.lock().unwrap();
       if let Some(napted_packet) = napter.translate_incoming(ip_packet) {
-        println!("here");
         let mut lan_out = lan_out_arc.lock().unwrap();
         if let Some(ether_to_send) = lan_out.ether_encap(napted_packet) {
           lan_out.send(ether_to_send)?;
-          println!("sent");
         };
       };
     };

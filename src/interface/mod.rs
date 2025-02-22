@@ -36,8 +36,9 @@ impl IntfInput {
           Some(packet) => packet,
           None => return None
         };
-        if ip_packet.get_destination() == self.ipv4_addr {None}
-        else {Some(ip_packet)}
+        // if ip_packet.get_destination() == self.ipv4_addr {None}
+        // else {Some(ip_packet)}
+        Some(ip_packet)
       }
       _ => None
     }

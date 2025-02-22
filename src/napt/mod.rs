@@ -26,7 +26,7 @@ impl NAPTer {
       // Icmp => {},
       Tcp => self.translate_incoming_tcp(packet),
       // Udp => {},
-      _ => Some(packet)
+      _ => None
     }
   }
   //translate packets going to WAN
@@ -35,7 +35,7 @@ impl NAPTer {
       // Icmp => {},
       Tcp => self.translate_outgoing_tcp(packet),
       // Udp => {},
-      _ => Some(packet)
+      _ => None
     }
   }
 }
@@ -45,14 +45,13 @@ pub fn calc_ip_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
 }
 
 pub fn calc_tcp_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
-  let mut tcp = MutableTcpPacket::owned(ip_packet.payload().to_vec()).unwrap();
-  tcp.set_checksum(0);
   let mut tcp_checksum_buf: Vec<u8> = Vec::new();
   tcp_checksum_buf.append(&mut ip_packet.packet()[12..20].to_vec());
-  let tcp_packet_len = tcp.packet().len();
+  let tcp_packet_len = ip_packet.payload().len();
   tcp_checksum_buf.append(&mut vec![0u8, 6u8, (tcp_packet_len/256) as u8, (tcp_packet_len%256)as u8]);
-  tcp_checksum_buf.append(&mut tcp.packet().to_vec());
-  compute_checksum(&tcp_checksum_buf)
+  tcp_checksum_buf.append(&mut ip_packet.payload().to_vec());
+  let tcp_check = compute_checksum(&tcp_checksum_buf);
+  tcp_check
 }
 
 // pub fn calc_translated_ip_checksum(original_checksum: u16, original_ip: &Ipv4Addr, new_ip: &Ipv4Addr) -> u16 {

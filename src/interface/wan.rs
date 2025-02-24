@@ -1,9 +1,10 @@
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::{env, io};
 
 use pnet_datalink::{DataLinkReceiver, DataLinkSender};
 use pnet_datalink::Channel::Ethernet;
 
-pub fn create_wan_channels(wan_envvars: Vec<&str>) -> io::Result<(Vec<Box<dyn DataLinkSender>>, Vec<Box<dyn DataLinkReceiver>>)> {
+pub fn create_wan_channels(wan_envvars: &Vec<&str>) -> io::Result<(Vec<Box<dyn DataLinkSender>>, Vec<Box<dyn DataLinkReceiver>>)> {
   let mut out_channels: Vec<Box<dyn DataLinkSender>> = Vec::new();
   let mut in_channels: Vec<Box<dyn DataLinkReceiver>> = Vec::new();
 
@@ -19,6 +20,15 @@ pub fn create_wan_channels(wan_envvars: Vec<&str>) -> io::Result<(Vec<Box<dyn Da
     return Err(io::Error::new(io::ErrorKind::InvalidInput, "wan interface"))
   }
   Ok((out_channels, in_channels))
+}
+
+pub fn create_wan_bounding_channels<T>(wan_envvars: &Vec<&str>) -> Vec<(Box<Sender<T>>, Box<Receiver<T>>)> {
+  let mut bounding_channels = Vec::new();
+  for _ in wan_envvars {
+    let (tx, rx) = mpsc::channel();
+    bounding_channels.push((Box::from(tx), Box::from(rx)));
+  }
+  bounding_channels
 }
 
 

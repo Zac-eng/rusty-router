@@ -45,7 +45,7 @@ pub fn calc_ip_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
   compute_checksum(&ip_packet.packet()[..20])
 }
 
-pub fn calc_transport_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
+pub fn calc_tcp_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
   let mut tcp_checksum_buf: Vec<u8> = Vec::new();
   tcp_checksum_buf.append(&mut ip_packet.packet()[12..20].to_vec());
   let tcp_packet_len = ip_packet.payload().len();
@@ -53,6 +53,16 @@ pub fn calc_transport_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
   tcp_checksum_buf.append(&mut ip_packet.payload().to_vec());
   let tcp_check = compute_checksum(&tcp_checksum_buf);
   tcp_check
+}
+
+pub fn calc_udp_checksum(ip_packet: &MutableIpv4Packet) -> u16 {
+  let mut udp_checksum_buf: Vec<u8> = Vec::new();
+  udp_checksum_buf.append(&mut ip_packet.packet()[12..20].to_vec());
+  let udp_packet_len = ip_packet.payload().len();
+  udp_checksum_buf.append(&mut vec![0u8, 17u8, (udp_packet_len/256) as u8, (udp_packet_len%256)as u8]);
+  udp_checksum_buf.append(&mut ip_packet.payload().to_vec());
+  let udp_check = compute_checksum(&udp_checksum_buf);
+  udp_check
 }
 
 // pub fn calc_translated_ip_checksum(original_checksum: u16, original_ip: &Ipv4Addr, new_ip: &Ipv4Addr) -> u16 {

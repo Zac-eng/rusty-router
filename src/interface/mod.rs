@@ -11,7 +11,7 @@ pub mod thread_funcs;
 
 pub struct IntfInput {
   pub ipv4_addr: Ipv4Addr,
-  rx: Box<dyn DataLinkReceiver>,
+  pub rx: Box<dyn DataLinkReceiver>,
 }
 
 pub struct IntfOutput {
@@ -21,28 +21,28 @@ pub struct IntfOutput {
 }
 
 impl IntfInput {
-  pub fn receive(&mut self) -> io::Result<EthernetPacket<'static>> {
+  pub fn receive(&mut self) -> io::Result<MutableEthernetPacket<'static>> {
     let packet = self.rx.next()?;
-    match EthernetPacket::owned(packet.to_vec()) {
+    match MutableEthernetPacket::owned(packet.to_vec()) {
       Some(etherframe) => Ok(etherframe),
       None => Err(Error::new(ErrorKind::InvalidData, "non_ethernet packet"))
     }
   }
 
-  pub fn classify(&self, etherframe: EthernetPacket) -> Option<MutableIpv4Packet<'static>> {
-    match etherframe.get_ethertype() {
-      EtherTypes::Ipv4 => {
-        let ip_packet = match MutableIpv4Packet::owned(etherframe.payload().to_vec()) {
-          Some(packet) => packet,
-          None => return None
-        };
-        // if ip_packet.get_destination() == self.ipv4_addr {None}
-        // else {Some(ip_packet)}
-        Some(ip_packet)
-      }
-      _ => None
-    }
-  }
+  // pub fn classify(&self, etherframe: EthernetPacket) -> Option<MutableIpv4Packet<'static>> {
+  //   match etherframe.get_ethertype() {
+  //     EtherTypes::Ipv4 => {
+  //       let ip_packet = MutableIpv4Packet::owned(etherframe.payload().to_vec())?; {
+  //         Some(packet) => packet,
+  //         None => return None
+  //       };
+  //       // if ip_packet.get_destination() == self.ipv4_addr {None}
+  //       // else {Some(ip_packet)}
+  //       Some(ip_packet)
+  //     }
+  //     _ => None
+  //   }
+  // }
 }
 
 impl IntfOutput {

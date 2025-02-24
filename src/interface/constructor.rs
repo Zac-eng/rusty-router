@@ -6,7 +6,12 @@ use pnet_datalink::Channel::Ethernet;
 
 use super::{get_ipv4_addr, IntfInput, IntfOutput};
 
-pub fn construct_interface(interface_name: &str, dst_env_var: &str) -> io::Result<(IntfOutput, IntfInput)> {
+pub fn create_lan_intf() -> io::Result<(IntfOutput, IntfInput)> {
+  construct_interface("LAN_INTF", "LAN_FIRSTHOP_MAC")
+}
+
+fn construct_interface(intf_env_var: &str, dst_env_var: &str) -> io::Result<(IntfOutput, IntfInput)> {
+  let interface_name = env::var(intf_env_var).unwrap();
   let interface = match pnet_datalink::interfaces().into_iter().find(|intf| intf.name == interface_name) {
     Some(interface) => interface,
     None => return Err(Error::new(ErrorKind::NotFound, format!("interface: {:?}", interface_name)))

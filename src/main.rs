@@ -3,6 +3,7 @@ use dotenv::dotenv;
 
 mod interface;
 mod napt;
+mod crypto;
 mod scheduler;
 mod test;
 
@@ -11,10 +12,12 @@ use napt::NAPTer;
 
 fn main() -> io::Result<()> {
     dotenv().ok();
+    let wan_intfs = ["WAN0_INTF", "WAN1_INTF"];
+    let wan_dsts = ["WAN0_DST", "WAN1_DST"];
     println!("Rusty Bounding Router Running!!");
 
-    let (lan_tx, mut lan_rx) = construct_interface(&env::var("LAN_INTF").unwrap(), "LAN_FIRSTHOP_MAC")?;
-    let (wan0_tx, mut wan0_rx) = construct_interface(&env::var("WAN0_INTF").unwrap(), "WAN0_FIRSTHOP_MAC")?;
+    let (lan_tx, mut lan_rx) = construct_interface("LAN_INTF", "LAN_FIRSTHOP_MAC")?;
+    let (wan0_txs, mut wan0_rxs) = construct_interface("WAN0_INTF", "WAN0_FIRSTHOP_MAC")?;
     let lan_tx_arc = Arc::new(Mutex::new(lan_tx));
     let arc0 = Arc::clone(&lan_tx_arc);
     let napter = Arc::new(Mutex::new(NAPTer::new(wan0_rx.ipv4_addr)));

@@ -1,9 +1,14 @@
+use std::collections::HashMap;
 use std::{io, sync::Arc};
-use std::sync::Mutex;
+use std::sync::{Mutex, mpsc};
+
+use pnet::packet::ethernet::{EthernetPacket, MutableEthernetPacket};
+use pnet::packet::ipv4::Ipv4Packet;
+use pnet::packet::Packet;
 
 use crate::napt::NAPTer;
 use crate::scheduler::RoundRobinScheduler;
-
+use crate::crypto;
 use super::{IntfInput, IntfOutput};
 
 pub fn lan_thread_func(
@@ -26,7 +31,7 @@ pub fn lan_thread_func(
   }
 }
 
-pub fn wan_thread_func(
+pub fn wan_intf_func(
   wan_in: &mut IntfInput,
   lan_out_arc: Arc<Mutex<IntfOutput>>,
   napter: Arc<Mutex<NAPTer>>
@@ -42,5 +47,25 @@ pub fn wan_thread_func(
         };
       };
     };
+  }
+}
+
+pub fn wan_bounding_func(
+  wan_channels: &Vec<Box<mpsc::Receiver<Vec<u8>>>>
+) {
+  let mut fragment_map: HashMap<u16, Vec<u8>> = HashMap::new();
+  let (key, iv) = crypto::load_crypto_info()?;
+  loop {
+    for channel in wan_channels {
+      match channel.try_recv() {
+        Ok(packet) => {
+          let ether_frame = EthernetPacket::owned(packet).unwrap();
+          let ip_packet = Ipv4Packet::new(ether_frame.payload()).unwrap();
+          let content = decrypt_packet(ip_packet.payload(), key, iv);
+        },
+        Err(mpsc::TryRecvError::Empty) => {},
+        Err(mpsc::TryRecvError::Disconnected) => return,
+      }
+    }
   }
 }

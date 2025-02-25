@@ -13,7 +13,7 @@ pub fn load_crypto_info() -> io::Result<([u8;32], [u8;16])> {
   return Ok((key, iv))
 }
 
-pub fn encrypt_packet(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn encrypt_packet(data: &[u8], key: &[u8], iv: &[u8]) -> io::Result<Vec<u8>> {
   let cipher = Cipher::aes_256_cbc();
   let mut encrypter = Crypter::new(cipher, Mode::Encrypt, key, Some(iv))?;
   encrypter.pad(true);
@@ -26,7 +26,7 @@ pub fn encrypt_packet(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, Box
   Ok(ciphertext)
 }
 
-pub fn decrypt_packet(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn decrypt_packet(data: &[u8], key: &[u8], iv: &[u8]) -> io::Result<Vec<u8>> {
   let cipher = Cipher::aes_256_cbc();
   let mut decrypter = Crypter::new(cipher, Mode::Decrypt, key, Some(iv))?;
   decrypter.pad(true);

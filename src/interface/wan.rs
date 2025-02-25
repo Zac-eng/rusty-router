@@ -2,8 +2,9 @@ use std::env;
 use std::io::{self, Error, ErrorKind};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
-use pnet::packet::ethernet::MutableEthernetPacket;
+use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::packet::ipv4::MutableIpv4Packet;
+use pnet::packet::MutablePacket;
 use pnet::ipnetwork::IpNetwork;
 use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 use pnet_datalink::Channel::Ethernet;
@@ -32,20 +33,19 @@ impl WanInput {
     }
   }
 
-  // pub fn classify(&self, etherframe: &EthernetPacket) -> Option<MutableIpv4Packet<'static>> {
-  //   match etherframe.get_ethertype() {
-  //     EtherTypes::Ipv4 => {
-  //       let ip_packet = MutableIpv4Packet::new(etherframe.payload())?; {
-  //         Some(packet) => packet,
-  //         None => return None
-  //       };
-  //       // if ip_packet.get_destination() == self.ipv4_addr {None}
-  //       // else {Some(ip_packet)}
-  //       Some(ip_packet)
-  //     }
-  //     _ => None
-  //   }
-  // }
+  pub fn classify<'a>(&self, etherframe: &'a mut MutableEthernetPacket<'a>) -> Option<MutableIpv4Packet<'a>> {
+    match etherframe.get_ethertype() {
+      EtherTypes::Ipv4 => {
+        if let Some(ip_packet) = MutableIpv4Packet::new(etherframe.payload_mut()) {
+          if ip_packet.get_destination() == self.ipv4_addr {
+            return Some(ip_packet)
+          }
+        };
+        return None
+      }
+      _ => None
+    }
+  }
 }
 
 impl WanOutput {

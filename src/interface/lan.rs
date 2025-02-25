@@ -57,9 +57,9 @@ impl LanOutput {
     ether_frame.set_payload(ip_packet.packet());
     return Some(ether_buf)
   }
-  pub fn send(&mut self, ether_frame: EthernetPacket) -> io::Result<()> {
+  pub fn send(&mut self, ether_frame: Vec<u8>) -> io::Result<()> {
     // return Ok also for the case no response from API
-    match self.tx.send_to(ether_frame.packet(), None) {
+    match self.tx.send_to(&ether_frame, None) {
       Some(result) => return result,
       None => return Ok(())
     }

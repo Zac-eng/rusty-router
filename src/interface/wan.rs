@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, Error, ErrorKind};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
-use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
+use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
 use pnet::packet::ipv4::MutableIpv4Packet;
 use pnet::packet::MutablePacket;
 use pnet::ipnetwork::IpNetwork;

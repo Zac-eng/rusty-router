@@ -34,7 +34,10 @@ pub fn lan_thread_func(
           out_intf.ip_encap(&mut ip_packet);
         }
         out_intf.ether_encap(&mut ether_frame);
-        out_intf.send(ether_frame.packet());
+        match out_intf.send(ether_frame.packet()) {
+          Ok(_) => {},
+          Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
+        }
       }
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
@@ -47,7 +50,10 @@ pub fn lan_thread_func(
           ip_packet.set_fragment_offset((buf_len/2) as u16);
         }
         out_intf.ether_encap(&mut ether_frame);
-        out_intf.send(ether_frame.packet());
+        match out_intf.send(ether_frame.packet()) {
+          Ok(_) => {},
+          Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
+        }
       }
       ip_id += 1;
     };
@@ -61,7 +67,10 @@ pub fn wan_intf_func(
   loop {
     let mut ether_frame = wan_in.receive()?;
     if let Some(ip_packet) = wan_in.classify(&mut ether_frame) {
-      wan_channel.send(ip_packet.packet().to_vec());
+      match wan_channel.send(ip_packet.packet().to_vec()) {
+        Ok(_) => continue,
+        Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
+      }
     };
   }
 }
@@ -92,7 +101,10 @@ pub fn wan_bounding_func(
               }
             }
             let original_packet = MutableIpv4Packet::owned(packet_buf).unwrap();
-            lan_out.send(lan_out.ether_encap(original_packet).unwrap());
+            match lan_out.send(lan_out.ether_encap(original_packet).unwrap()) {
+              Ok(_) => continue,
+              Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
+            }
           } else {
             fragment_map.insert(id, content);
           }

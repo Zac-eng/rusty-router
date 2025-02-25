@@ -6,12 +6,12 @@ use std::net::Ipv4Addr;
 use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
 use pnet::packet::ipv4::MutableIpv4Packet;
 use pnet::packet::Packet;
-use pnet::{ipnetwork::IpNetwork, packet::ethernet::EthernetPacket};
+use pnet::ipnetwork::IpNetwork;
 use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 use pnet_datalink::Channel::Ethernet;
 
 pub struct LanInput {
-  pub ipv4_addr: Ipv4Addr,
+  pub _ipv4_addr: Ipv4Addr,
   pub rx: Box<dyn DataLinkReceiver>,
 }
 
@@ -22,13 +22,13 @@ pub struct LanOutput {
 }
 
 impl LanInput {
-  pub fn receive(&mut self) -> io::Result<MutableEthernetPacket<'static>> {
-    let packet = self.rx.next()?;
-    match MutableEthernetPacket::owned(packet.to_vec()) {
-      Some(etherframe) => Ok(etherframe),
-      None => Err(Error::new(ErrorKind::InvalidData, "non_ethernet packet"))
-    }
-  }
+  // pub fn receive(&mut self) -> io::Result<MutableEthernetPacket<'static>> {
+  //   let packet = self.rx.next()?;
+  //   match MutableEthernetPacket::owned(packet.to_vec()) {
+  //     Some(etherframe) => Ok(etherframe),
+  //     None => Err(Error::new(ErrorKind::InvalidData, "non_ethernet packet"))
+  //   }
+  // }
 
 //   // pub fn classify(&self, etherframe: &EthernetPacket) -> Option<MutableIpv4Packet<'static>> {
 //   //   match etherframe.get_ethertype() {
@@ -79,9 +79,9 @@ pub fn construct_lan_interface(intf_env_var: &str, dst_env_var: &str) -> io::Res
   };
   let mac_addr = interface.mac.expect("no mac address allocated");
   let dst_mac = MacAddr::from_str(&env::var(dst_env_var).unwrap()).expect("invalid MAC address in env vars");
-  let ipv4_addr = get_ipv4_addr(&interface).expect("ipv4 address does not allocated");
+  let _ipv4_addr = get_ipv4_addr(&interface).expect("ipv4 address does not allocated");
   let output = LanOutput {dst_mac, self_mac: mac_addr, tx};
-  let input = LanInput {ipv4_addr, rx};
+  let input = LanInput {_ipv4_addr, rx};
   return Ok((output, input))
 }
 

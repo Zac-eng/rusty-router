@@ -1,16 +1,15 @@
-use std::{env, io, sync::{Arc, Mutex}, thread::{self, JoinHandle}};
+use std::{io, thread::{self, JoinHandle}};
 use dotenv::dotenv;
 
 mod interface;
 mod napt;
 mod crypto;
 mod scheduler;
-mod test;
+// mod test;
 
 // use interface::{constructor::construct_interface, thread_funcs::{lan_thread_func, wan_thread_func}};
 
 use interface::{create_lan_intf, create_wan_channels, create_wan_intfs, thread_funcs::{lan_thread_func, wan_bounding_func, wan_intf_func}};
-use napt::NAPTer;
 
 fn main() -> io::Result<()> {
     dotenv().ok();
@@ -24,7 +23,7 @@ fn main() -> io::Result<()> {
     handles.push(thread::spawn(move || {
         lan_thread_func(&mut lan_rx, &mut wan_txs)
     }));
-    for i in 0..wan_rxs.len() {
+    for _ in 0..wan_rxs.len() {
         let mut wan_rx = wan_rxs.remove(0);
         let wan_channel = wan_channel_txs.remove(0);
         handles.push(thread::spawn(move || {

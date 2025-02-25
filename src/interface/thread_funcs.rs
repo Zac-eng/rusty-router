@@ -1,12 +1,11 @@
+use std::io;
 use std::collections::HashMap;
-use std::{io, sync::Arc};
-use std::sync::{Mutex, mpsc};
+use std::sync::mpsc;
 
-use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
+use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
 use pnet::packet::ipv4::{Ipv4Packet, MutableIpv4Packet};
-use pnet::packet::{self, MutablePacket, Packet};
+use pnet::packet::{MutablePacket, Packet};
 
-use crate::napt::NAPTer;
 use crate::scheduler::RoundRobinScheduler;
 use crate::crypto;
 
@@ -57,7 +56,7 @@ pub fn lan_thread_func(
 
 pub fn wan_intf_func(
   wan_in: &mut WanInput,
-  wan_channel: &Box<mpsc::Sender<Vec<u8>>>
+  wan_channel: &mpsc::Sender<Vec<u8>>
 ) -> io::Result<()> {
   loop {
     let mut ether_frame = wan_in.receive()?;
@@ -69,7 +68,7 @@ pub fn wan_intf_func(
 
 pub fn wan_bounding_func(
   lan_out: &mut LanOutput,
-  wan_channels: &Vec<Box<mpsc::Receiver<Vec<u8>>>>
+  wan_channels: &Vec<mpsc::Receiver<Vec<u8>>>
 ) -> io::Result<()> {
   let mut fragment_map: HashMap<u16, Vec<u8>> = HashMap::new();
   let (key, iv) = crypto::load_crypto_info()?;

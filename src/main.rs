@@ -7,29 +7,32 @@ mod crypto;
 mod scheduler;
 mod test;
 
-use interface::{constructor::construct_interface, thread_funcs::{lan_thread_func, wan_thread_func}};
+// use interface::{constructor::construct_interface, thread_funcs::{lan_thread_func, wan_thread_func}};
+
+use interface::{create_lan_intf, create_wan_channels, create_wan_intfs, thread_funcs::{lan_thread_func, wan_bounding_func, wan_intf_func}};
 use napt::NAPTer;
 
 fn main() -> io::Result<()> {
     dotenv().ok();
-    let wan_intfs = ["WAN0_INTF", "WAN1_INTF"];
-    let wan_dsts = ["WAN0_DST", "WAN1_DST"];
     println!("Rusty Bounding Router Running!!");
 
-    let (lan_tx, mut lan_rx) = construct_interface("LAN_INTF", "LAN_FIRSTHOP_MAC")?;
-    let (wan0_txs, mut wan0_rxs) = construct_interface("WAN0_INTF", "WAN0_FIRSTHOP_MAC")?;
-    let lan_tx_arc = Arc::new(Mutex::new(lan_tx));
-    let arc0 = Arc::clone(&lan_tx_arc);
-    let napter = Arc::new(Mutex::new(NAPTer::new(wan0_rx.ipv4_addr)));
-    let arc_napt0 = napter.clone();
-    let arc_napt1 = napter.clone();
+    let (mut lan_tx, mut lan_rx) = create_lan_intf()?;
+    let (mut wan_txs, mut wan_rxs) = create_wan_intfs()?;
+    let (mut wan_channel_txs, wan_channel_rxs) = create_wan_channels(wan_txs.len());
 
     let mut handles: Vec<JoinHandle<io::Result<()>>> = Vec::new();
     handles.push(thread::spawn(move || {
-        lan_thread_func(&mut lan_rx, &mut vec![wan0_tx], arc_napt0)
+        lan_thread_func(&mut lan_rx, &mut wan_txs)
     }));
+    for i in 0..wan_rxs.len() {
+        let mut wan_rx = wan_rxs.remove(0);
+        let wan_channel = wan_channel_txs.remove(0);
+        handles.push(thread::spawn(move || {
+            wan_intf_func(&mut wan_rx, &wan_channel)
+        }));
+    }
     handles.push(thread::spawn(move || {
-        wan_thread_func(&mut wan0_rx, arc0, arc_napt1)
+        wan_bounding_func(&mut lan_tx, &wan_channel_rxs)
     }));
     for handle in handles {
         let _ = handle.join().unwrap()?;

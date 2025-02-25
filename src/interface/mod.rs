@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, sync::mpsc::{self, Receiver, Sender}};
 
 pub mod lan;
 pub mod wan;
@@ -24,4 +24,16 @@ pub fn create_wan_intfs() -> io::Result<(Vec<WanOutput>, Vec<WanInput>)> {
     wan_ins.push(input);
   }
   Ok((wan_outs, wan_ins))
+}
+
+pub fn create_wan_channels(channel_size: usize) -> (Vec<Sender<Vec<u8>>>, Vec<Receiver<Vec<u8>>>) {
+  let mut tx_vec: Vec<Sender<Vec<u8>>> = Vec::new();
+  let mut rx_vec: Vec<Receiver<Vec<u8>>> = Vec::new();
+
+  for _ in 0..channel_size {
+    let (tx, rx) = mpsc::channel();
+    tx_vec.push(tx);
+    rx_vec.push(rx);
+  }
+  (tx_vec, rx_vec)
 }

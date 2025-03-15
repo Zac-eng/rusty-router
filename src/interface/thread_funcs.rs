@@ -92,28 +92,29 @@ pub fn wan_bounding_func(
       match channel.try_recv() {
         Ok(packet) => {
           let ip_packet = Ipv4Packet::owned(packet).unwrap();
-          let content = crypto::decrypt_packet(ip_packet.payload(), &key, &iv)?;
-          // let content = ip_packet.payload();
-          let id = ip_packet.get_identification();
-          if let Some(another) = fragment_map.remove(&id) {
-            let mut packet_buf: Vec<u8> = Vec::new();
-            match ip_packet.get_fragment_offset() {
-              0 => {
-                packet_buf.extend(content);
-                packet_buf.extend(another);
-              },
-              _ => {
-                packet_buf.extend(another);
-                packet_buf.extend(content);
+          if let Ok(content) = crypto::decrypt_packet(ip_packet.payload(), &key, &iv) {
+            // let content = ip_packet.payload();
+            let id = ip_packet.get_identification();
+            if let Some(another) = fragment_map.remove(&id) {
+              let mut packet_buf: Vec<u8> = Vec::new();
+              match ip_packet.get_fragment_offset() {
+                0 => {
+                  packet_buf.extend(content);
+                  packet_buf.extend(another);
+                },
+                _ => {
+                  packet_buf.extend(another);
+                  packet_buf.extend(content);
+                }
               }
+              let original_packet = MutableIpv4Packet::owned(packet_buf).unwrap();
+              match lan_out.send(lan_out.ether_encap(original_packet).unwrap()) {
+                Ok(_) => continue,
+                Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
+              }
+            } else {
+              fragment_map.insert(id, content.to_vec());
             }
-            let original_packet = MutableIpv4Packet::owned(packet_buf).unwrap();
-            match lan_out.send(lan_out.ether_encap(original_packet).unwrap()) {
-              Ok(_) => continue,
-              Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
-            }
-          } else {
-            fragment_map.insert(id, content.to_vec());
           }
         },
         Err(mpsc::TryRecvError::Empty) => {},

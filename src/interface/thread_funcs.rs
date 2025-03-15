@@ -21,23 +21,19 @@ pub fn lan_thread_func(
   let (key, iv) = crypto::load_crypto_info()?;
   loop {
     let received_buf = lan_in.rx.next()?;
-    let ip_payload_len = received_buf.len() - 34;
-    let longer_payload_len = ip_payload_len / 2 + ((ip_payload_len % 2 != 0) as usize);
-    let encrypted_payload_len = 16 * (longer_payload_len / 16 + (longer_payload_len % 16 != 0) as usize);
-    let mut new_ether_buf = vec![0u8;34+encrypted_payload_len];
-    new_ether_buf.copy_from_slice(received_buf);
-    let mut ether_frame = MutableEthernetPacket::owned(new_ether_buf).unwrap();
+    let mut ether_frame = MutableEthernetPacket::owned(received_buf.to_vec()).unwrap();
     let ip_buf_len = ether_frame.payload().len();
     if ether_frame.get_ethertype() == EtherTypes::Ipv4 {
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
-          let mut ip_packet = MutableIpv4Packet::new(ether_frame.payload_mut()).unwrap();
+          let mut ip_packet = MutableIpv4Packet::owned(ether_frame.payload().to_vec()).unwrap();
           let payload = crypto::encrypt_packet(&ip_packet.packet()[..ip_buf_len/2], &key, &iv)?;
           // let payload = &received_buf[..buf_len/2];
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
           out_intf.ip_encap(&mut ip_packet);
+          ether_frame.set_payload(ip_packet.packet());
         }
         out_intf.ether_encap(&mut ether_frame);
         match out_intf.send(ether_frame.packet()) {
@@ -48,13 +44,14 @@ pub fn lan_thread_func(
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
-          let mut ip_packet = MutableIpv4Packet::new(ether_frame.payload_mut()).unwrap();
+          let mut ip_packet = MutableIpv4Packet::owned(ether_frame.payload().to_vec()).unwrap();
           let payload = crypto::encrypt_packet(&ip_packet.packet()[ip_buf_len/2..], &key, &iv)?;
           // let payload = &received_buf[buf_len/2..];
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
           out_intf.ip_encap(&mut ip_packet);
           ip_packet.set_fragment_offset((ip_buf_len/2) as u16);
+          ether_frame.set_payload(ip_packet.packet());
         }
         out_intf.ether_encap(&mut ether_frame);
         match out_intf.send(ether_frame.packet()) {

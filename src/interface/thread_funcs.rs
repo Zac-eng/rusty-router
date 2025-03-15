@@ -21,7 +21,12 @@ pub fn lan_thread_func(
   let (key, iv) = crypto::load_crypto_info()?;
   loop {
     let received_buf = lan_in.rx.next()?;
-    let mut ether_frame = MutableEthernetPacket::owned(received_buf.to_vec()).unwrap();
+    let ip_payload_len = received_buf.len() - 34;
+    let longer_payload_len = ip_payload_len / 2 + ((ip_payload_len % 2 != 0) as usize);
+    let encrypted_payload_len = 16 * (longer_payload_len / 16 + (longer_payload_len % 16 != 0) as usize);
+    let mut new_ether_buf = vec![0u8;34+encrypted_payload_len];
+    new_ether_buf.copy_from_slice(received_buf);
+    let mut ether_frame = MutableEthernetPacket::owned(new_ether_buf).unwrap();
     let ip_buf_len = ether_frame.payload().len();
     if ether_frame.get_ethertype() == EtherTypes::Ipv4 {
       {

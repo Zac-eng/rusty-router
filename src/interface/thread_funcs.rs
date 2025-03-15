@@ -32,6 +32,7 @@ pub fn lan_thread_func(
           // let payload = &received_buf[..buf_len/2];
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
+          ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);
           ether_frame.set_payload(ip_packet.packet());
         }
@@ -51,6 +52,7 @@ pub fn lan_thread_func(
           ip_packet.set_identification(ip_id);
           out_intf.ip_encap(&mut ip_packet);
           ip_packet.set_fragment_offset((ip_buf_len/2) as u16);
+          ip_packet.set_total_length(ip_packet.packet().len() as u16);
           ether_frame.set_payload(ip_packet.packet());
         }
         out_intf.ether_encap(&mut ether_frame);

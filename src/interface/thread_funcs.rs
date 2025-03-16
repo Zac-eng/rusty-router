@@ -31,12 +31,11 @@ pub fn lan_thread_func(
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
+          println!("sent: {:?}", received_ip.packet());
           let payload = crypto::encrypt_packet(&received_ip.packet()[..ip_buf_len/2], &key, &iv)?;
           buffer.resize(14+ihl+payload.len(), 0);
-          println!("{}, {}", ihl, payload.len());
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_payload(&payload);
-          println!("payload {:?} set", payload);
           ip_packet.set_identification(ip_id);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);
@@ -54,9 +53,7 @@ pub fn lan_thread_func(
           let payload = crypto::encrypt_packet(&received_ip.packet()[ip_buf_len/2..], &key, &iv)?;
           buffer.resize(14+ihl+payload.len(), 0);
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
-          println!("{}, {}", ihl, payload.len());
           ip_packet.set_payload(&payload);
-          println!("payload {:?} set", payload);
           ip_packet.set_identification(ip_id);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);
@@ -114,6 +111,7 @@ pub fn wan_bounding_func(
                   packet_buf.extend(content);
                 }
               }
+              println!("concated: {:?}", packet_buf);
               let original_packet = MutableIpv4Packet::owned(packet_buf).unwrap();
               match lan_out.send(lan_out.ether_encap(original_packet).unwrap()) {
                 Ok(_) => continue,

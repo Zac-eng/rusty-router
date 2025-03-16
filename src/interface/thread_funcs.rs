@@ -25,6 +25,7 @@ pub fn lan_thread_func(
     let received_ether = EthernetPacket::new(&received_buf).unwrap();
     let received_ip = Ipv4Packet::new(received_ether.payload()).unwrap();
     let ihl = received_ip.get_header_length() as usize * 4;
+    if ihl < 20 {continue;}
     let ip_buf_len = received_ip.packet().len();
     if received_ether.get_ethertype() == EtherTypes::Ipv4 && received_ip.get_destination() != lan_in.ipv4_addr {
       {
@@ -35,6 +36,7 @@ pub fn lan_thread_func(
           println!("{}, {}", ihl, payload.len());
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_payload(&payload);
+          println!("payload {:?} set", payload);
           ip_packet.set_identification(ip_id);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);
@@ -52,7 +54,9 @@ pub fn lan_thread_func(
           let payload = crypto::encrypt_packet(&received_ip.packet()[ip_buf_len/2..], &key, &iv)?;
           buffer.resize(14+ihl+payload.len(), 0);
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
+          println!("{}, {}", ihl, payload.len());
           ip_packet.set_payload(&payload);
+          println!("payload {:?} set", payload);
           ip_packet.set_identification(ip_id);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);

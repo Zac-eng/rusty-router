@@ -103,12 +103,12 @@ pub fn wan_bounding_func(
               let mut packet_buf: Vec<u8> = Vec::new();
               match ip_packet.get_fragment_offset() {
                 0 => {
-                  packet_buf.extend(content);
                   packet_buf.extend(another);
+                  packet_buf.extend(content);
                 },
                 _ => {
-                  packet_buf.extend(another);
                   packet_buf.extend(content);
+                  packet_buf.extend(another);
                 }
               }
               println!("concated: {:?}", packet_buf);

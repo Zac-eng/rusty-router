@@ -27,7 +27,7 @@ pub fn lan_thread_func(
     let ihl = received_ip.get_header_length() as usize * 4;
     if ihl < 20 {continue;}
     let ip_buf_len = received_ip.packet().len();
-    if received_ether.get_ethertype() == EtherTypes::Ipv4 && received_ip.get_destination() != lan_in.ipv4_addr {
+    if received_ether.get_ethertype() == EtherTypes::Ipv4 && received_ip.get_destination() != lan_in.ipv4_addr && received_ip.get_source() != lan_in.ipv4_addr {
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {

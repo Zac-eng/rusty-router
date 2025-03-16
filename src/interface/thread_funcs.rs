@@ -56,6 +56,7 @@ pub fn lan_thread_func(
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
+          ip_packet.set_fragment_offset((ip_buf_len/2) as u16);
           out_intf.ip_encap(&mut ip_packet);
         }
         let mut ether_frame = MutableEthernetPacket::new(&mut buffer).unwrap();
@@ -103,12 +104,12 @@ pub fn wan_bounding_func(
               let mut packet_buf: Vec<u8> = Vec::new();
               match ip_packet.get_fragment_offset() {
                 0 => {
-                  packet_buf.extend(another);
                   packet_buf.extend(content);
+                  packet_buf.extend(another);
                 },
                 _ => {
-                  packet_buf.extend(content);
                   packet_buf.extend(another);
+                  packet_buf.extend(content);
                 }
               }
               println!("concated: {:?}", packet_buf);

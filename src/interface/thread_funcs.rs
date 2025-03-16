@@ -4,7 +4,7 @@ use std::sync::mpsc;
 
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::packet::ipv4::{Ipv4Packet, MutableIpv4Packet};
-use pnet::packet::{MutablePacket, Packet};
+use pnet::packet::Packet;
 
 use crate::scheduler::RoundRobinScheduler;
 use crate::crypto;
@@ -26,13 +26,13 @@ pub fn lan_thread_func(
     let received_ip = Ipv4Packet::new(received_ether.payload()).unwrap();
     let ihl = received_ip.get_header_length() as usize * 4;
     let ip_buf_len = received_ip.packet().len();
-    println!("{}", ip_buf_len);
-    if received_ether.get_ethertype() == EtherTypes::Ipv4 {
+    if received_ether.get_ethertype() == EtherTypes::Ipv4 && received_ip.get_destination() != lan_in.ipv4_addr {
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
           let payload = crypto::encrypt_packet(&received_ip.packet()[..ip_buf_len/2], &key, &iv)?;
           buffer.resize(14+ihl+payload.len(), 0);
+          println!("{}, {}", ihl, payload.len());
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);

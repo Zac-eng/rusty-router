@@ -11,7 +11,7 @@ use pnet_datalink::{DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface}
 use pnet_datalink::Channel::Ethernet;
 
 pub struct LanInput {
-  pub _ipv4_addr: Ipv4Addr,
+  pub ipv4_addr: Ipv4Addr,
   pub rx: Box<dyn DataLinkReceiver>,
 }
 
@@ -79,9 +79,9 @@ pub fn construct_lan_interface(intf_env_var: &str, dst_env_var: &str) -> io::Res
   };
   let mac_addr = interface.mac.expect("no mac address allocated");
   let dst_mac = MacAddr::from_str(&env::var(dst_env_var).unwrap()).expect("invalid MAC address in env vars");
-  let _ipv4_addr = get_ipv4_addr(&interface).expect("ipv4 address does not allocated");
+  let ipv4_addr = get_ipv4_addr(&interface).expect("ipv4 address does not allocated");
   let output = LanOutput {dst_mac, self_mac: mac_addr, tx};
-  let input = LanInput {_ipv4_addr, rx};
+  let input = LanInput {ipv4_addr, rx};
   return Ok((output, input))
 }
 

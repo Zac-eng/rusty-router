@@ -1,4 +1,4 @@
-use std::{io, result, thread::{self, JoinHandle}};
+use std::{io, thread::{self, JoinHandle}};
 use dotenv::dotenv;
 
 mod interface;

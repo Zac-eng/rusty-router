@@ -2,7 +2,7 @@ use std::io;
 use std::collections::HashMap;
 use std::sync::mpsc;
 
-use pnet::packet::ethernet::{EtherTypes, MutableEthernetPacket};
+use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::packet::ipv4::{Ipv4Packet, MutableIpv4Packet};
 use pnet::packet::{MutablePacket, Packet};
 
@@ -21,21 +21,24 @@ pub fn lan_thread_func(
   let (key, iv) = crypto::load_crypto_info()?;
   loop {
     let received_buf = lan_in.rx.next()?;
-    let mut ether_frame = MutableEthernetPacket::owned(received_buf.to_vec()).unwrap();
-    let ip_buf_len = ether_frame.payload().len();
-    if ether_frame.get_ethertype() == EtherTypes::Ipv4 {
+    let mut buffer = received_buf.to_vec();
+    let received_ether = EthernetPacket::new(&received_buf).unwrap();
+    let received_ip = Ipv4Packet::new(received_ether.payload()).unwrap();
+    let ihl = received_ip.get_header_length() as usize * 4;
+    let ip_buf_len = received_ip.get_total_length() as usize;
+    if received_ether.get_ethertype() == EtherTypes::Ipv4 {
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
-          let mut ip_packet = MutableIpv4Packet::owned(ether_frame.payload().to_vec()).unwrap();
-          let payload = crypto::encrypt_packet(&ip_packet.packet()[..ip_buf_len/2], &key, &iv)?;
-          // let payload = &received_buf[..buf_len/2];
+          let payload = crypto::encrypt_packet(&received_ether.payload()[..ip_buf_len/2], &key, &iv)?;
+          buffer.resize(14+ihl+payload.len(), 0);
+          let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);
-          ether_frame.set_payload(ip_packet.packet());
         }
+        let mut ether_frame = MutableEthernetPacket::new(&mut buffer).unwrap();
         out_intf.ether_encap(&mut ether_frame);
         match out_intf.send(ether_frame.packet()) {
           Ok(_) => {},
@@ -45,16 +48,15 @@ pub fn lan_thread_func(
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
-          let mut ip_packet = MutableIpv4Packet::owned(ether_frame.payload().to_vec()).unwrap();
-          let payload = crypto::encrypt_packet(&ip_packet.packet()[ip_buf_len/2..], &key, &iv)?;
-          // let payload = &received_buf[buf_len/2..];
+          let payload = crypto::encrypt_packet(&received_ether.payload()[ip_buf_len/2..], &key, &iv)?;
+          buffer.resize(14+ihl+payload.len(), 0);
+          let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
-          out_intf.ip_encap(&mut ip_packet);
-          ip_packet.set_fragment_offset((ip_buf_len/2) as u16);
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
-          ether_frame.set_payload(ip_packet.packet());
+          out_intf.ip_encap(&mut ip_packet);
         }
+        let mut ether_frame = MutableEthernetPacket::new(&mut buffer).unwrap();
         out_intf.ether_encap(&mut ether_frame);
         match out_intf.send(ether_frame.packet()) {
           Ok(_) => {},

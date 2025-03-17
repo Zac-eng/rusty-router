@@ -17,7 +17,7 @@ pub fn lan_thread_func(
   wan_out: &mut Vec<WanOutput>,
 ) -> io::Result<()> {
   let mut scheduler = RoundRobinScheduler::new(wan_out.len());
-  let mut ip_id = 1u16;
+  let mut ip_id = 0u16;
   // let (key, iv) = crypto::load_crypto_info()?;
   loop {
     let received_buf = lan_in.rx.next()?;
@@ -102,12 +102,13 @@ pub fn wan_bounding_func(
           // if let Ok(content) = crypto::decrypt_packet(ip_packet.payload(), &key, &iv) {
             let content = ip_packet.payload();
             let id = ip_packet.get_identification();
+            println!("{}", id);
             if let Some(another) = fragment_map.remove(&id) {
               let mut packet_buf: Vec<u8> = Vec::new();
-              if *content == *another.as_slice() {
-                fragment_map.insert(id, another);
-                continue;
-              }
+              // if *content == *another.as_slice() {
+              //   fragment_map.insert(id, another);
+              //   continue;
+              // }
               match ip_packet.get_fragment_offset() {
                 0 => {
                   packet_buf.extend(content);

@@ -104,6 +104,10 @@ pub fn wan_bounding_func(
             let id = ip_packet.get_identification();
             if let Some(another) = fragment_map.remove(&id) {
               let mut packet_buf: Vec<u8> = Vec::new();
+              if *content == *another.as_slice() {
+                fragment_map.insert(id, another);
+                continue;
+              }
               match ip_packet.get_fragment_offset() {
                 0 => {
                   packet_buf.extend(content);

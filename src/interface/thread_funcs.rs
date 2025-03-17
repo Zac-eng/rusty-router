@@ -35,9 +35,9 @@ pub fn lan_thread_func(
           let payload = crypto::encrypt_packet(&received_ip.packet()[..ip_buf_len/2], &key, &iv)?;
           buffer.resize(14+ihl+payload.len(), 0);
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
+          ip_packet.set_total_length(ip_packet.packet().len() as u16);
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
-          ip_packet.set_total_length(ip_packet.packet().len() as u16);
           out_intf.ip_encap(&mut ip_packet);
         }
         let mut ether_frame = MutableEthernetPacket::new(&mut buffer).unwrap();
@@ -53,9 +53,9 @@ pub fn lan_thread_func(
           let payload = crypto::encrypt_packet(&received_ip.packet()[ip_buf_len/2..], &key, &iv)?;
           buffer.resize(14+ihl+payload.len(), 0);
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
+          ip_packet.set_total_length(ip_packet.packet().len() as u16);
           ip_packet.set_payload(&payload);
           ip_packet.set_identification(ip_id);
-          ip_packet.set_total_length(ip_packet.packet().len() as u16);
           ip_packet.set_fragment_offset((ip_buf_len/2) as u16);
           out_intf.ip_encap(&mut ip_packet);
         }

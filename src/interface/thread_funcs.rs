@@ -18,7 +18,7 @@ pub fn lan_thread_func(
 ) -> io::Result<()> {
   let mut scheduler = RoundRobinScheduler::new(wan_out.len());
   let mut ip_id = 1u16;
-  let (key, iv) = crypto::load_crypto_info()?;
+  // let (key, iv) = crypto::load_crypto_info()?;
   loop {
     let received_buf = lan_in.rx.next()?;
     let mut buffer = received_buf.to_vec();
@@ -32,7 +32,8 @@ pub fn lan_thread_func(
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
           println!("sent: {:?}", received_ip.packet());
-          let payload = crypto::encrypt_packet(&received_ip.packet()[..ip_buf_len/2], &key, &iv)?;
+          // let payload = crypto::encrypt_packet(&received_ip.packet()[..ip_buf_len/2], &key, &iv)?;
+          let payload = &received_ip.packet()[..ip_buf_len/2];
           buffer.resize(14+ihl+payload.len(), 0);
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
@@ -50,7 +51,8 @@ pub fn lan_thread_func(
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
-          let payload = crypto::encrypt_packet(&received_ip.packet()[ip_buf_len/2..], &key, &iv)?;
+          // let payload = crypto::encrypt_packet(&received_ip.packet()[ip_buf_len/2..], &key, &iv)?;
+          let payload = &received_ip.packet()[ip_buf_len/2..];
           buffer.resize(14+ihl+payload.len(), 0);
           let mut ip_packet = MutableIpv4Packet::new(&mut buffer[14..]).unwrap();
           ip_packet.set_total_length(ip_packet.packet().len() as u16);
@@ -91,14 +93,14 @@ pub fn wan_bounding_func(
   wan_channels: &Vec<mpsc::Receiver<Vec<u8>>>
 ) -> io::Result<()> {
   let mut fragment_map: HashMap<u16, Vec<u8>> = HashMap::new();
-  let (key, iv) = crypto::load_crypto_info()?;
+  // let (key, iv) = crypto::load_crypto_info()?;
   loop {
     for channel in wan_channels {
       match channel.try_recv() {
         Ok(packet) => {
           let ip_packet = Ipv4Packet::owned(packet).unwrap();
-          if let Ok(content) = crypto::decrypt_packet(ip_packet.payload(), &key, &iv) {
-            // let content = ip_packet.payload();
+          // if let Ok(content) = crypto::decrypt_packet(ip_packet.payload(), &key, &iv) {
+            let content = ip_packet.payload();
             let id = ip_packet.get_identification();
             if let Some(another) = fragment_map.remove(&id) {
               let mut packet_buf: Vec<u8> = Vec::new();
@@ -121,7 +123,7 @@ pub fn wan_bounding_func(
             } else {
               fragment_map.insert(id, content.to_vec());
             }
-          }
+          // }
         },
         Err(mpsc::TryRecvError::Empty) => {},
         Err(mpsc::TryRecvError::Disconnected) => return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "wan channel")),

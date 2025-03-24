@@ -31,7 +31,6 @@ pub fn lan_thread_func(
       {
         let out_intf = &mut (wan_out[scheduler.next()]);
         {
-          println!("sent: {:?}", received_ip.packet());
           // let payload = crypto::encrypt_packet(&received_ip.packet()[..ip_buf_len/2], &key, &iv)?;
           let payload = &received_ip.packet()[..ip_buf_len/2];
           buffer.resize(14+ihl+payload.len(), 0);
@@ -102,7 +101,6 @@ pub fn wan_bounding_func(
           // if let Ok(content) = crypto::decrypt_packet(ip_packet.payload(), &key, &iv) {
             let content = ip_packet.payload();
             let id = ip_packet.get_identification();
-            println!("{}", id);
             if let Some(another) = fragment_map.remove(&id) {
               let mut packet_buf: Vec<u8> = Vec::new();
               // if *content == *another.as_slice() {
@@ -119,7 +117,6 @@ pub fn wan_bounding_func(
                   packet_buf.extend(content);
                 }
               }
-              println!("concated: {:?}", packet_buf);
               let original_packet = MutableIpv4Packet::owned(packet_buf).unwrap();
               match lan_out.send(lan_out.ether_encap(original_packet).unwrap()) {
                 Ok(_) => continue,

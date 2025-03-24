@@ -67,7 +67,7 @@ pub fn lan_thread_func(
           Err(_) => return Err(io::Error::new(io::ErrorKind::BrokenPipe, "wan channel"))
         }
       }
-      ip_id += 1;
+      if ip_id != u16::MAX {ip_id += 1} else {ip_id = 0}
     };
   }
 }

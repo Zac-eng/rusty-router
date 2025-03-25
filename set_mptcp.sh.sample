@@ -1,0 +1,25 @@
+export $(grep -v '^#' .env | xargs)
+
+WAN0_IP=192.168.11.1
+WAN1_IP=10.0.2.1
+
+# only for ipv4 with /24 subnet
+WAN0_SUBNET=$(echo $WAN0_IP | awk -F. '{print $1"."$2"."$3".0/24"}')
+WAN1_SUBNET=$(echo $WAN1_IP | awk -F. '{print $1"."$2"."$3".0/24"}')
+
+# set the number of subflows
+SUBFLOW_NUM=2
+
+sudo ip rule add from $WAN0_IP table 1
+sudo ip rule add from $WAN1_IP table 2
+
+sudo ip route add $WAN0_SUBNET dev $WAN0_INTF scope link table 1
+sudo ip route add $WAN1_SUBNET dev $WAN1_INTF scope link table 2
+
+sudo ip mptcp limits set subflow $SUBFLOW_NUM add_addr_accepted $SUBFLOW_NUM
+
+# make sure the id with "ip mptcp endpoint show"
+# OLD_ENDPOINT_ID=2
+# sudo ip mptcp endpoint del id $OLD_ENDPOINT_ID
+
+sudo ip mptcp endpoint add $WAN1_IP dev $WAN0_INTF signal
